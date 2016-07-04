@@ -70,97 +70,109 @@ int ler_arq_gcode(FILE *arq_i, FILE *arq_o, command_t *comando)
 
 				if(comando->code == 0) //G0
 				{
-					d = fgetc(arq_i); //space
+					fseek(arq_i,1,SEEK_CUR); //jump space value
 					d = fgetc(arq_i); //AXIS
-					while(1)
+
+					if(d == 'Z') //Se o primeiro valor e Z
 					{
-						if(d == 'Z') //Se o primeiro valor e Z
+						uint8_t k[8]; //8 digitos do valor dos deslocamentos
+						for(int i = 0; i<8; i++)
 						{
-							uint8_t k[8]; //8 digitos do valor dos deslocamentos
-							for(int i = 0; i<8; i++)
+							if((fgetc(arq_i)) == '\n')
 							{
-								k[i] = fgetc(arq_i);
-								if(k[i] == '.') //se for ponto, volta o indice do ponteiro e sobrescreve sobre o ponto. Valor irrelevante
-								{
-									i--;
-								}
-							}
-							comando->z_axis = (float)atoi(k)/100000.0;
-							comando->have_z = 1;
-						}
-
-						if(fgetc(arq_i) == '\n'){ //Verifica se acabou o comando
-							fseek(arq_i,-1,SEEK_CUR); //Volta 1 byte do ponteiro de arquivo
-							break;
-						}
-
-						fseek(arq_i,-1,SEEK_CUR); //Volta 1 byte do ponteiro de arquivo pois teve um getfc
-
-						if(d == 'Y') //Se o primeiro valor e Y
-						{
-							uint8_t k[8]; //8 digitos do valor dos deslocamentos
-							for(int i = 0; i<8; i++)
-							{
-								k[i] = fgetc(arq_i);
-								if(k[i] == '.') //se for ponto, volta o indice do ponteiro e sobrescreve sobre o ponto. Valor irrelevante
-								{
-									i--;
-								}
-							}
-							comando->y_axis = (float)atoi(k)/100000.0;
-							comando->have_y = 1;
-						}
-
-						if(fgetc(arq_i) == '\n'){ //Verifica se acabou o comando
-							fseek(arq_i,-1,SEEK_CUR); //Volta 1 byte do ponteiro de arquivo
-							break;
-						}
-
-						fseek(arq_i,-1,SEEK_CUR); //Volta 1 byte do ponteiro de arquivo pois teve um getfc
-
-						if(d == 'X')
-						{
-							uint8_t k[8]; //8 digitos do valor dos deslocamentos
-							for(int i = 0; i<8; i++)
-							{
-								k[i] = fgetc(arq_i);
-								if(k[i] == '.') //se for ponto, volta o indice do ponteiro e sobrescreve sobre o ponto. Valor irrelevante
-								{
-									i--;
-								}
-							}
-							comando->x_axis = (float)atoi(k)/100000.0;
-							comando->have_x = 1;
-
-							if(fgetc(arq_i) == '\n'){
 								fseek(arq_i,-1,SEEK_CUR); //Volta 1 byte do ponteiro de arquivo
-								break;
+								i = 8;
 							}
-							fseek(arq_i,1,SEEK_CUR); //Pula o byte do Y
-
-							for(int i = 0; i<8; i++)
+							else
 							{
+								fseek(arq_i,-1,SEEK_CUR); //Volta 1 byte do ponteiro de arquivo
 								k[i] = fgetc(arq_i);
 								if(k[i] == '.') //se for ponto, volta o indice do ponteiro e sobrescreve sobre o ponto. Valor irrelevante
 								{
 									i--;
 								}
 							}
-							comando->y_axis = (float)atoi(k)/100000.0;
-							comando->have_y = 1;
 						}
-
-						if(fgetc(arq_i) == '\n'){ //Verifica se acabou o comando
-							fseek(arq_i,-1,SEEK_CUR); //Volta 1 byte do ponteiro de arquivo
-							break;
-						}
-
-						//fprint no arquivo arq_o
-
-						//comando->x_axis = comando->y_axis = comando->z_axis = 0;
+						comando->z_axis = (float)atoi(k)/100000.0;
+						comando->have_z = 1;
 					}
 
+					if(d == 'Y') //Se o primeiro valor e Y
+					{
+						uint8_t k[8]; //8 digitos do valor dos deslocamentos
+						for(int i = 0; i<8; i++)
+						{
+							if((fgetc(arq_i)) == '\n')
+							{
+								fseek(arq_i,-1,SEEK_CUR); //Volta 1 byte do ponteiro de arquivo
+								i = 8;
+							}
+							else
+							{
+								fseek(arq_i,-1,SEEK_CUR); //Volta 1 byte do ponteiro de arquivo
+								k[i] = fgetc(arq_i);
+								if(k[i] == '.') //se for ponto, volta o indice do ponteiro e sobrescreve sobre o ponto. Valor irrelevante
+								{
+									i--;
+								}
+							}
+						}
+						comando->y_axis = (float)atoi(k)/100000.0;
+						comando->have_y = 1;
+					}
+
+					if(d == 'X')
+					{
+						char k[8]; //8 digitos do valor dos deslocamentos
+						uint8_t i;
+						for(i = 0; i<8; i++)
+						{
+							if((fgetc(arq_i)) == ' ')
+							{
+								fseek(arq_i,-1,SEEK_CUR); //Volta 1 byte do ponteiro de arquivo
+								i = 8;
+							}
+							else
+							{
+								fseek(arq_i,-1,SEEK_CUR); //Volta 1 byte do ponteiro de arquivo
+								k[i] = fgetc(arq_i);
+								if(k[i] == '.') //se for ponto, volta o indice do ponteiro e sobrescreve sobre o ponto. Valor irrelevante
+								{
+									i--;
+								}
+							}
+						}
+						comando->x_axis = (float)atoi(k)/100000.0;
+						comando->have_x = 1;
+
+						if(fgetc(arq_i) == ' '){ //Se não acabou ja pula o space
+							fseek(arq_i,1,SEEK_CUR); //Pula o byte do Y
+							uint8_t q[8]; //8 digitos do valor dos deslocamentos
+							for(int i = 0; i<8; i++)
+							{
+								if((fgetc(arq_i)) == '\n')
+								{
+									fseek(arq_i,-1,SEEK_CUR); //Volta 1 byte do ponteiro de arquivo
+									i = 8;
+								}
+								else
+								{
+									fseek(arq_i,-1,SEEK_CUR); //Volta 1 byte do ponteiro de arquivo
+									q[i] = fgetc(arq_i);
+									if(q[i] == '.') //se for ponto, volta o indice do ponteiro e sobrescreve sobre o ponto. Valor irrelevante
+									{
+										i--;
+									}
+								}
+							}
+							comando->y_axis = (float)atoi(q)/100000.0;
+							comando->have_y = 1;
+						}
+						else
+							fseek(arq_i,-1,SEEK_CUR); //Volta 1 byte do ponteiro de arquivo
+					}
 				}
+
 				if(comando->code == 1) //G1
 				{
 
