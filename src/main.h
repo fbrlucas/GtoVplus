@@ -13,12 +13,12 @@ typedef struct command_s
 {
     char op;
     uint8_t code;
-    uint8_t have_x;
-    float x_axis;
-    uint8_t have_y;
-    float y_axis;
-    uint8_t have_z;
-    float z_axis;
+    //uint8_t have_x;
+    //float x_axis;
+    //uint8_t have_y;
+    //float y_axis;
+    uint8_t axis[3]; //Precisa?????????
+    float value[3];
 } command_t;
 
 #endif /* MAIN_H_ */
