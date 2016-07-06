@@ -8,6 +8,8 @@
 #ifndef MAIN_H_
 #define MAIN_H_
 
+#define FAST_SPEED "60"
+#define SLOW_SPEED "40"
 
 typedef struct command_s
 {
