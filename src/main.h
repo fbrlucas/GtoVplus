@@ -8,8 +8,10 @@
 #ifndef MAIN_H_
 #define MAIN_H_
 
-#define FAST_SPEED "60"
-#define SLOW_SPEED "40"
+#define FAST_SPEED "30"
+#define SLOW_SPEED "20" //Not Used
+#define Z_SAFE -5
+#define Z_CUT 20
 
 typedef struct command_s
 {
@@ -19,7 +21,7 @@ typedef struct command_s
     //float x_axis;
     //uint8_t have_y;
     //float y_axis;
-    uint8_t axis[3]; //Precisa?????????
+    //uint8_t axis[3]; //Precisa?????????
     float value[3];
 } command_t;
 

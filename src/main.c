@@ -39,15 +39,17 @@ static void get_value(FILE *arq_i, uint8_t s)//, command_t *comando) //verificar
 		}
 	}
 	comando.value[s] = (float)atoi(k)/100000.0;
-	comando.axis[s] = 1;
+	//comando.axis[s] = 1;
 }
 
 static void read__gcode_write_vplus(FILE *arq_i, FILE *arq_o, command_t *comando)
 {
-	char a, b, d;
+	char a = 0, b = 0, d = 0;
 	uint8_t c[2];
 	char name[20];
-	//uint32_t value;
+	float aux1 = 0, aux2 = 0;
+	int8_t aux_z = 0;
+	comando->value[0] = comando->value[1] = comando->value[2] = 0;
 
 	arq_i = fopen("front.ngc", "r"); //Abre o arquivo em leitura(r)
 	arq_o = fopen("Vplus_Code.V2", "w"); //Abre o arquivo em escrita (w)
@@ -70,12 +72,7 @@ static void read__gcode_write_vplus(FILE *arq_i, FILE *arq_o, command_t *comando
 
 		a = fgetc(arq_i);
 
-		if(b == '\n'){/*
-			if((a == 'G')||(a == 'F')||(a == 'X')||(a == 'Y')||(a == 'Z'))
-			{
-				comando->code = a;
-				printf("!!!Hello World-UHUUU!!!");
-			}*/
+		if(b == '\n'){
 
 			if(a == 'G')
 			{
@@ -104,47 +101,54 @@ static void read__gcode_write_vplus(FILE *arq_i, FILE *arq_o, command_t *comando
 					if(d == 'Z') //Se o primeiro valor e Z
 					{
 						get_value(arq_i, 2); //Indice 2 do vetor axis e value - Z
-						fprintf(arq_o, "\tSPEED "FAST_SPEED);
-						fprintf(arq_o, "\n");
-						fprintf(arq_o, "\tSET posk = TRANS(0,0,%f,0,180,0)", comando->value[2]);
-						fprintf(arq_o, "\n");
-						fprintf(arq_o, "\tMOVES posk");
-						fprintf(arq_o, "\n");
+						if((comando->value[2]) >= 0)
+						{
+							fprintf(arq_o, "\n");
+							fprintf(arq_o, "\tDRIVE 3, %i, 10", (Z_SAFE - aux_z));
+							fprintf(arq_o, "\n\tBREAK");
+							fprintf(arq_o, "\n");
+							aux_z = Z_SAFE;
+						}
+						else
+						{
+							fprintf(arq_o, "\n");
+							fprintf(arq_o, "\tDRIVE 3, %i, 10", (Z_CUT - aux_z));
+							fprintf(arq_o, "\n\tBREAK");
+							fprintf(arq_o, "\n");
+							aux_z = Z_CUT;
+						}
 					}
 
 					if(d == 'Y') //Se o primeiro valor e Y
 					{
+						aux1 = comando->value[1];
 						get_value(arq_i, 1); //Indice 1 do vetor axis e value - Y
-						fprintf(arq_o, "\tSPEED "FAST_SPEED);
-						fprintf(arq_o, "\n");
-						fprintf(arq_o, "\tSET posk = TRANS(0,%f,0,0,180,0)", comando->value[1]);
-						fprintf(arq_o, "\n");
-						fprintf(arq_o, "\tMOVES posk");
+						fprintf(arq_o, "\tHERE pos0");
+						fprintf(arq_o, "\n\tSET posk = SHIFT(pos0 BY 0, %f, 0)", ((comando->value[1])-(aux1)));
+						fprintf(arq_o, "\n\tMOVES posk");
 						fprintf(arq_o, "\n");
 					}
 
 					if(d == 'X')
 					{
+						aux1 = comando->value[0];
 						get_value(arq_i, 0); //Indice 0 do vetor axis e value - X
 
 						if(fgetc(arq_i) == ' '){ //Se não acabou ja pula o space
 							fseek(arq_i,1,SEEK_CUR); //Pula o byte do Y
+							aux2 = comando->value[1];
 							get_value(arq_i, 1); //Indice 1 do vetor axis e value - Y
-							fprintf(arq_o, "\tSPEED "FAST_SPEED);
-							fprintf(arq_o, "\n");
-							fprintf(arq_o, "\tSET posk = TRANS(%f,%f,0,0,180,0)", comando->value[0], comando->value[1]);
-							fprintf(arq_o, "\n");
-							fprintf(arq_o, "\tMOVES posk");
+							fprintf(arq_o, "\tHERE pos0");
+							fprintf(arq_o, "\n\tSET posk = SHIFT(pos0 BY %f, %f, 0)", ((comando->value[0])-(aux1)), ((comando->value[1])-(aux2)));
+							fprintf(arq_o, "\n\tMOVES posk");
 							fprintf(arq_o, "\n");
 						}
 						else
 						{
 							fseek(arq_i,-1,SEEK_CUR); //Volta 1 byte do ponteiro de arquivo
-							fprintf(arq_o, "\tSPEED "FAST_SPEED);
-							fprintf(arq_o, "\n");
-							fprintf(arq_o, "\tSET posk = TRANS(%f,0,0,0,180,0)", comando->value[0]);
-							fprintf(arq_o, "\n");
-							fprintf(arq_o, "\tMOVES posk");
+							fprintf(arq_o, "\tHERE pos0");
+							fprintf(arq_o, "\n\tSET posk = SHIFT(pos0 BY %f, 0, 0)", ((comando->value[0])-(aux1)));
+							fprintf(arq_o, "\n\tMOVES posk");
 							fprintf(arq_o, "\n");
 						}
 					}
@@ -158,39 +162,54 @@ static void read__gcode_write_vplus(FILE *arq_i, FILE *arq_o, command_t *comando
 					if(d == 'Z') //Se o primeiro valor e Z
 					{
 						get_value(arq_i, 2); //Indice 2 do vetor axis e value - Z
-						fprintf(arq_o, "\tSET posk = TRANS(0,0,%f,0,180,0)", comando->value[2]);
-						fprintf(arq_o, "\n");
-						fprintf(arq_o, "\tMOVES posk");
-						fprintf(arq_o, "\n");
+						if((comando->value[2]) >= 0)
+						{
+							fprintf(arq_o, "\n");
+							fprintf(arq_o, "\tDRIVE 3, %i, 10", (Z_SAFE - aux_z));
+							fprintf(arq_o, "\n\tBREAK");
+							fprintf(arq_o, "\n");
+							aux_z = Z_SAFE;
+						}
+						else
+						{
+							fprintf(arq_o, "\n");
+							fprintf(arq_o, "\tDRIVE 3, %i, 10", (Z_CUT - aux_z));
+							fprintf(arq_o, "\n\tBREAK");
+							fprintf(arq_o, "\n");
+							aux_z = Z_CUT;
+						}
 					}
 
 					if(d == 'Y') //Se o primeiro valor e Y
 					{
+						aux1 = comando->value[1];
 						get_value(arq_i, 1); //Indice 1 do vetor axis e value - Y
-						fprintf(arq_o, "\tSET posk = TRANS(0,%f,0,0,180,0)", comando->value[1]);
-						fprintf(arq_o, "\n");
-						fprintf(arq_o, "\tMOVES posk");
+						fprintf(arq_o, "\tHERE pos0");
+						fprintf(arq_o, "\n\tSET posk = SHIFT(pos0 BY 0, %f, 0)", ((comando->value[1])-(aux1)));
+						fprintf(arq_o, "\n\tMOVES posk");
 						fprintf(arq_o, "\n");
 					}
 
 					if(d == 'X')
 					{
+						aux1 = comando->value[0];
 						get_value(arq_i, 0); //Indice 0 do vetor axis e value - X
 
 						if(fgetc(arq_i) == ' '){ //Se não acabou ja pula o space
 							fseek(arq_i,1,SEEK_CUR); //Pula o byte do Y
+							aux2 = comando->value[1];
 							get_value(arq_i, 1); //Indice 1 do vetor axis e value - Y
-							fprintf(arq_o, "\tSET posk = TRANS(%f,%f,0,0,180,0)", comando->value[0], comando->value[1]);
-							fprintf(arq_o, "\n");
-							fprintf(arq_o, "\tMOVES posk");
+							fprintf(arq_o, "\tHERE pos0");
+							fprintf(arq_o, "\n\tSET posk = SHIFT(pos0 BY %f, %f, 0)", ((comando->value[0])-(aux1)), ((comando->value[1])-(aux2)));
+							fprintf(arq_o, "\n\tMOVES posk");
 							fprintf(arq_o, "\n");
 						}
 						else
 						{
 							fseek(arq_i,-1,SEEK_CUR); //Volta 1 byte do ponteiro de arquivo
-							fprintf(arq_o, "\tSET posk = TRANS(%f,0,0,0,180,0)", comando->value[0]);
-							fprintf(arq_o, "\n");
-							fprintf(arq_o, "\tMOVES posk");
+							fprintf(arq_o, "\tHERE pos0");
+							fprintf(arq_o, "\n\tSET posk = SHIFT(pos0 BY %f, 0, 0)", ((comando->value[0])-(aux1)));
+							fprintf(arq_o, "\n\tMOVES posk");
 							fprintf(arq_o, "\n");
 						}
 					}
@@ -198,48 +217,64 @@ static void read__gcode_write_vplus(FILE *arq_i, FILE *arq_o, command_t *comando
 			}
 
 			if(a == 'F')
-			{
+			{/*
 				get_value(arq_i, 0);
 				//fprintf(arq_o, "SPEED %f", comando->value[0]);
 				fprintf(arq_o, "\tSPEED "SLOW_SPEED);
 				fprintf(arq_o, "\n");
+			*/
 			}
 			if(a == 'X')
 			{
+				aux1 = comando->value[0];
 				get_value(arq_i, 0); //Indice 0 do vetor axis e value - X
 
 				if(fgetc(arq_i) == ' '){ //Se não acabou ja pula o space
 					fseek(arq_i,1,SEEK_CUR); //Pula o byte do Y
+					aux2 = comando->value[1];
 					get_value(arq_i, 1); //Indice 1 do vetor axis e value - Y
-					fprintf(arq_o, "\tSET posk = TRANS(%f,%f,0,0,180,0)", comando->value[0], comando->value[1]);
-					fprintf(arq_o, "\n");
-					fprintf(arq_o, "\tMOVES posk");
+					fprintf(arq_o, "\tHERE pos0");
+					fprintf(arq_o, "\n\tSET posk = SHIFT(pos0 BY %f, %f, 0)", ((comando->value[0])-(aux1)), ((comando->value[1])-(aux2)));
+					fprintf(arq_o, "\n\tMOVES posk");
 					fprintf(arq_o, "\n");
 				}
 				else
 				{
 					fseek(arq_i,-1,SEEK_CUR); //Volta 1 byte do ponteiro de arquivo
-					fprintf(arq_o, "\tSET posk = TRANS(%f,0,0,0,180,0)", comando->value[0]);
-					fprintf(arq_o, "\n");
-					fprintf(arq_o, "\tMOVES posk");
+					fprintf(arq_o, "\tHERE pos0");
+					fprintf(arq_o, "\n\tSET posk = SHIFT(pos0 BY %f, 0, 0)", ((comando->value[0])-(aux1)));
+					fprintf(arq_o, "\n\tMOVES posk");
 					fprintf(arq_o, "\n");
 				}
 			}
 			if(a == 'Y')
 			{
+				aux1 = comando->value[1];
 				get_value(arq_i, 1); //Indice 1 do vetor axis e value - Y
-				fprintf(arq_o, "\tSET posk = TRANS(0,%f,0,0,180,0)", comando->value[1]);
-				fprintf(arq_o, "\n");
-				fprintf(arq_o, "\tMOVES posk");
+				fprintf(arq_o, "\tHERE pos0");
+				fprintf(arq_o, "\n\tSET posk = SHIFT(pos0 BY 0, %f, 0)", ((comando->value[1])-(aux1)));
+				fprintf(arq_o, "\n\tMOVES posk");
 				fprintf(arq_o, "\n");
 			}
 			if(a == 'Z')
 			{
 				get_value(arq_i, 2); //Indice 2 do vetor axis e value - Z
-				fprintf(arq_o, "\tSET posk = TRANS(0,0,%f,0,180,0)", comando->value[2]);
-				fprintf(arq_o, "\n");
-				fprintf(arq_o, "\tMOVES posk");
-				fprintf(arq_o, "\n");
+				if((comando->value[2]) >= 0)
+				{
+					fprintf(arq_o, "\n");
+					fprintf(arq_o, "\tDRIVE 3, %i, 10", (Z_SAFE - aux_z));
+					fprintf(arq_o, "\n\tBREAK");
+					fprintf(arq_o, "\n");
+					aux_z = Z_SAFE;
+				}
+				else
+				{
+					fprintf(arq_o, "\n");
+					fprintf(arq_o, "\tDRIVE 3, %i, 10", (Z_CUT - aux_z));
+					fprintf(arq_o, "\n\tBREAK");
+					fprintf(arq_o, "\n");
+					aux_z = Z_CUT;
+				}
 			}
 		}
 
