@@ -16,7 +16,7 @@
 
 command_t comando;
 
-static void get_value(FILE *arq_i, uint8_t s)//, command_t *comando) //verificar se o ponteiro n reseta.????????????????????----------------------------------------
+static void get_value(FILE *arq_i, uint8_t s)
 {
 	uint8_t k[8]; //8 digitos do valor dos deslocamentos, le ate 999.99999, se maior aumente o indice
 	uint8_t a;
@@ -39,7 +39,6 @@ static void get_value(FILE *arq_i, uint8_t s)//, command_t *comando) //verificar
 		}
 	}
 	comando.value[s] = (float)atoi(k)/100000.0;
-	//comando.axis[s] = 1;
 }
 
 static void read__gcode_write_vplus(FILE *arq_i, FILE *arq_o, command_t *comando)
@@ -86,10 +85,20 @@ static void read__gcode_write_vplus(FILE *arq_i, FILE *arq_o, command_t *comando
 				{
 					fprintf(arq_o, "\tSPEED "FAST_SPEED" MMPS ALWAYS");
 					fprintf(arq_o, "\n");
+					fprintf(arq_o, "\n\tSET pos1 = TRANS(0,0,0,0,180,0)"); //Movimento para a origem
+					fprintf(arq_o, "\n\tMOVES pos1");
+					fprintf(arq_o, "\n\tBREAK");
+					fprintf(arq_o, "\n\tWAIT.EVENT , 3");
+					fprintf(arq_o, "\n");
 				}
-				if(comando->code == 93) //G94
+				if(comando->code == 93) //G93
 				{
 					fprintf(arq_o, "\tSPEED "FAST_SPEED" IPS ALWAYS");
+					fprintf(arq_o, "\n");
+					fprintf(arq_o, "\n\tSET pos1 = TRANS(0,0,0,0,180,0)"); //Movimento para a origem
+					fprintf(arq_o, "\n\tMOVES pos1");
+					fprintf(arq_o, "\n\tBREAK");
+					fprintf(arq_o, "\n\tWAIT.EVENT , 3");
 					fprintf(arq_o, "\n");
 				}
 
@@ -126,6 +135,7 @@ static void read__gcode_write_vplus(FILE *arq_i, FILE *arq_o, command_t *comando
 						fprintf(arq_o, "\tHERE pos0");
 						fprintf(arq_o, "\n\tSET posk = SHIFT(pos0 BY 0, %f, 0)", ((comando->value[1])-(aux1)));
 						fprintf(arq_o, "\n\tMOVES posk");
+						fprintf(arq_o, "\n\tBREAK");
 						fprintf(arq_o, "\n");
 					}
 
@@ -141,6 +151,7 @@ static void read__gcode_write_vplus(FILE *arq_i, FILE *arq_o, command_t *comando
 							fprintf(arq_o, "\tHERE pos0");
 							fprintf(arq_o, "\n\tSET posk = SHIFT(pos0 BY %f, %f, 0)", ((comando->value[0])-(aux1)), ((comando->value[1])-(aux2)));
 							fprintf(arq_o, "\n\tMOVES posk");
+							fprintf(arq_o, "\n\tBREAK");
 							fprintf(arq_o, "\n");
 						}
 						else
@@ -149,6 +160,7 @@ static void read__gcode_write_vplus(FILE *arq_i, FILE *arq_o, command_t *comando
 							fprintf(arq_o, "\tHERE pos0");
 							fprintf(arq_o, "\n\tSET posk = SHIFT(pos0 BY %f, 0, 0)", ((comando->value[0])-(aux1)));
 							fprintf(arq_o, "\n\tMOVES posk");
+							fprintf(arq_o, "\n\tBREAK");
 							fprintf(arq_o, "\n");
 						}
 					}
@@ -187,6 +199,7 @@ static void read__gcode_write_vplus(FILE *arq_i, FILE *arq_o, command_t *comando
 						fprintf(arq_o, "\tHERE pos0");
 						fprintf(arq_o, "\n\tSET posk = SHIFT(pos0 BY 0, %f, 0)", ((comando->value[1])-(aux1)));
 						fprintf(arq_o, "\n\tMOVES posk");
+						fprintf(arq_o, "\n\tBREAK");
 						fprintf(arq_o, "\n");
 					}
 
@@ -202,6 +215,7 @@ static void read__gcode_write_vplus(FILE *arq_i, FILE *arq_o, command_t *comando
 							fprintf(arq_o, "\tHERE pos0");
 							fprintf(arq_o, "\n\tSET posk = SHIFT(pos0 BY %f, %f, 0)", ((comando->value[0])-(aux1)), ((comando->value[1])-(aux2)));
 							fprintf(arq_o, "\n\tMOVES posk");
+							fprintf(arq_o, "\n\tBREAK");
 							fprintf(arq_o, "\n");
 						}
 						else
@@ -210,19 +224,11 @@ static void read__gcode_write_vplus(FILE *arq_i, FILE *arq_o, command_t *comando
 							fprintf(arq_o, "\tHERE pos0");
 							fprintf(arq_o, "\n\tSET posk = SHIFT(pos0 BY %f, 0, 0)", ((comando->value[0])-(aux1)));
 							fprintf(arq_o, "\n\tMOVES posk");
+							fprintf(arq_o, "\n\tBREAK");
 							fprintf(arq_o, "\n");
 						}
 					}
 				}
-			}
-
-			if(a == 'F')
-			{/*
-				get_value(arq_i, 0);
-				//fprintf(arq_o, "SPEED %f", comando->value[0]);
-				fprintf(arq_o, "\tSPEED "SLOW_SPEED);
-				fprintf(arq_o, "\n");
-			*/
 			}
 			if(a == 'X')
 			{
@@ -236,6 +242,7 @@ static void read__gcode_write_vplus(FILE *arq_i, FILE *arq_o, command_t *comando
 					fprintf(arq_o, "\tHERE pos0");
 					fprintf(arq_o, "\n\tSET posk = SHIFT(pos0 BY %f, %f, 0)", ((comando->value[0])-(aux1)), ((comando->value[1])-(aux2)));
 					fprintf(arq_o, "\n\tMOVES posk");
+					fprintf(arq_o, "\n\tBREAK");
 					fprintf(arq_o, "\n");
 				}
 				else
@@ -244,6 +251,7 @@ static void read__gcode_write_vplus(FILE *arq_i, FILE *arq_o, command_t *comando
 					fprintf(arq_o, "\tHERE pos0");
 					fprintf(arq_o, "\n\tSET posk = SHIFT(pos0 BY %f, 0, 0)", ((comando->value[0])-(aux1)));
 					fprintf(arq_o, "\n\tMOVES posk");
+					fprintf(arq_o, "\n\tBREAK");
 					fprintf(arq_o, "\n");
 				}
 			}
@@ -254,6 +262,7 @@ static void read__gcode_write_vplus(FILE *arq_i, FILE *arq_o, command_t *comando
 				fprintf(arq_o, "\tHERE pos0");
 				fprintf(arq_o, "\n\tSET posk = SHIFT(pos0 BY 0, %f, 0)", ((comando->value[1])-(aux1)));
 				fprintf(arq_o, "\n\tMOVES posk");
+				fprintf(arq_o, "\n\tBREAK");
 				fprintf(arq_o, "\n");
 			}
 			if(a == 'Z')
@@ -298,5 +307,3 @@ int main(void) {
 
 	return 0;
 }
-
-
